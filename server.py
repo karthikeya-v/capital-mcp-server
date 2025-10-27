@@ -19,6 +19,7 @@ load_dotenv()
 
 # Capital.com API configuration
 API_KEY = os.getenv("CAPITAL_API_KEY")
+IDENTIFIER = os.getenv("CAPITAL_IDENTIFIER")
 API_PASSWORD = os.getenv("CAPITAL_API_PASSWORD")
 USE_DEMO = os.getenv("CAPITAL_USE_DEMO", "true").lower() == "true"
 
@@ -58,8 +59,9 @@ async def get_session():
                     "Content-Type": "application/json"
                 },
                 json={
-                    "identifier": API_KEY,
-                    "password": API_PASSWORD
+                    "identifier": IDENTIFIER,
+                    "password": API_PASSWORD,
+                    "encryptedPassword": False
                 }
             )
 
