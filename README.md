@@ -12,17 +12,32 @@ A Model Context Protocol (MCP) server that connects Claude Desktop to Capital.co
 
 ## Features
 
+### 🤖 NEW: AI-Powered Trading System
+- **Perplexity + Claude Integration**: Real news research combined with AI decision making
+- **Pre-Market Research**: Automated news gathering every morning for all instruments
+- **Intelligent Analysis**: Claude AI analyzes news context + technical indicators
+- **Smart Routing**: Only calls AI when needed (borderline signals) to save costs
+- **Real-Time Dashboard**: Web interface at http://localhost:5000
+- **Risk Management**: Configurable limits on losses, position sizes, and trade frequency
+- **One-Click Controls**: Start/stop bot and enable/disable auto-trading
+- 📖 **[AI Research Guide](AI_RESEARCH_GUIDE.md)** | **[Dashboard Docs](DASHBOARD_README.md)**
+
 ### Market Analysis Tools
 - 🔍 **Search Markets**: Find tradeable instruments (forex, indices, commodities, stocks, crypto)
 - 📊 **Market Details**: Get real-time prices, spreads, and market information
 - 📈 **Historical Data**: Fetch OHLC candlestick data for technical analysis
 - 💰 **Account Info**: Check balance, P&L, and available funds
+- 🔮 **Trade Predictions**: AI-powered technical analysis with confidence scoring
+- 📍 **Market Status**: Check if markets are open and view trading hours
+- 💱 **Position Sizing**: Calculate optimal position size based on risk parameters
 
 ### Trading Tools (Use with Caution)
-- 📍 **Open Positions**: Place market orders with stop-loss and take-profit
+- 📍 **Market Orders**: Place market orders with stop-loss and take-profit
+- 📋 **Limit/Stop Orders**: Place pending orders at specific price levels
 - ❌ **Close Positions**: Exit existing trades
 - ✏️ **Update Positions**: Modify stop-loss and take-profit levels
-- 📋 **View Orders**: Check open positions and pending orders
+- 📊 **Trade History**: View closed trades with performance analytics (win rate, profit factor, etc.)
+- 🧮 **Risk Calculator**: Calculate position sizes based on account balance and risk tolerance
 
 ## Prerequisites
 
@@ -186,9 +201,67 @@ Once connected, you can interact with Claude using natural language:
 | `get_account_info` | View account balance | ✅ Safe |
 | `get_positions` | List open positions | ✅ Safe |
 | `get_working_orders` | List pending orders | ✅ Safe |
-| `place_position` | Open new trade | ⚠️ CAUTION |
+| `predict_trade` | AI trade prediction with confidence | ✅ Safe |
+| `check_market_status` | Check if market is open | ✅ Safe |
+| `get_trade_history` | View trade history & analytics | ✅ Safe |
+| `calculate_position_size` | Calculate optimal position size | ✅ Safe |
+| `place_position` | Open new market order | ⚠️ CAUTION |
+| `place_working_order` | Place limit/stop order | ⚠️ CAUTION |
 | `close_position` | Close existing trade | ⚠️ CAUTION |
 | `update_position` | Modify stop/profit levels | ⚠️ CAUTION |
+| `cancel_working_order` | Cancel pending order | ⚠️ CAUTION |
+
+## Automated Trading Dashboard
+
+### Quick Start
+
+Launch the AI-powered trading dashboard:
+
+```bash
+python3 dashboard.py
+```
+
+Access at: **http://localhost:5000**
+
+### Features
+
+- 🤖 **AI Trading Bot**: Continuous market analysis across multiple instruments
+- 📊 **Real-Time Dashboard**: Live positions, P&L, and market signals
+- ⚙️ **Risk Controls**: Configurable loss limits, position sizing, and safety stops
+- 📈 **Performance Tracking**: Win rate, profit factor, and trade analytics
+- 🎯 **Smart Signals**: Only trades high-confidence setups (configurable threshold)
+
+### Configuration
+
+Edit `trading_config.json` to customize:
+
+```json
+{
+  "risk_management": {
+    "max_daily_loss": 500,           // Stop trading at this loss
+    "max_position_size": 1.0,        // Maximum lot size
+    "risk_per_trade_percent": 1.0    // Risk 1% per trade
+  },
+  "trading_settings": {
+    "auto_trade": false,             // Manual approval required
+    "trading_instruments": [         // Markets to monitor
+      "US100", "EURUSD", "GBPUSD"
+    ],
+    "min_confidence_threshold": 65   // Minimum signal strength
+  }
+}
+```
+
+### Safety Features
+
+- ✋ **Emergency Stop**: One-click bot shutdown
+- 🛡️ **Daily Loss Limits**: Auto-stops at configured loss
+- 📊 **Position Limits**: Maximum concurrent positions
+- ⚠️ **Consecutive Loss Protection**: Pauses after X losses
+- 🔍 **Market Hours Check**: Only trades when markets are open
+- 💰 **Position Sizing**: Automatic risk-based position calculation
+
+**[📖 Full Dashboard Documentation](DASHBOARD_README.md)**
 
 ## Session Management
 
