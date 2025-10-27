@@ -16,11 +16,23 @@
     "check_interval_seconds": 60,
     "min_confidence_threshold": 65
   },
+  "ai_research": {
+    "enabled": true,
+    "pre_market_research_time": "08:00",
+    "use_perplexity": true,
+    "use_claude": true,
+    "claude_for_borderline_only": true,
+    "breaking_news_check_interval": 900,
+    "min_confidence_for_claude": 50,
+    "max_confidence_for_claude": 80
+  },
   "notifications": {
     "trade_executed": true,
     "stop_loss_hit": true,
     "take_profit_hit": true,
-    "daily_loss_limit_reached": true
+    "daily_loss_limit_reached": true,
+    "pre_market_research_complete": true,
+    "breaking_news_detected": true
   },
   "emergency": {
     "close_all_on_daily_loss": true,

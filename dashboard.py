@@ -14,6 +14,7 @@ import httpx
 from dotenv import load_dotenv
 from flask import Flask, render_template_string, jsonify, request
 from threading import Thread
+from market_research import researcher
 
 # Load environment
 load_dotenv()
@@ -51,7 +52,11 @@ trading_state = {
     "consecutive_losses": 0,
     "last_update": None,
     "market_data": {},
-    "pending_signals": []
+    "pending_signals": [],
+    "research_data": {},
+    "ai_decisions": {},
+    "pre_market_done": False,
+    "last_research_time": None
 }
 
 # Load config
@@ -372,14 +377,35 @@ def check_risk_limits() -> Dict:
 # ========== AI TRADING BOT ==========
 
 async def trading_bot_loop():
-    """Main AI trading bot loop"""
-    logger.info("🤖 Trading bot started")
+    """Main AI trading bot loop with AI research integration"""
+    logger.info("🤖 Trading bot started with AI research capabilities")
 
     while True:
         try:
             if not config or not trading_state["enabled"]:
                 await asyncio.sleep(5)
                 continue
+
+            # ========== PRE-MARKET RESEARCH ==========
+            # Run once per day at configured time
+            current_hour = datetime.now().hour
+            pre_market_time = int(config.get('ai_research', {}).get('pre_market_research_time', '08:00').split(':')[0])
+
+            if config.get('ai_research', {}).get('enabled') and not trading_state['pre_market_done']:
+                if current_hour >= pre_market_time:
+                    logger.info("🔍 Running pre-market AI research...")
+                    instruments = config['trading_settings']['trading_instruments']
+
+                    research_results = await researcher.pre_market_research(instruments)
+                    trading_state['research_data'] = research_results
+                    trading_state['pre_market_done'] = True
+                    trading_state['last_research_time'] = datetime.now().isoformat()
+
+                    logger.info("✅ Pre-market research complete!")
+
+            # Reset flag at midnight
+            if current_hour == 0 and trading_state['pre_market_done']:
+                trading_state['pre_market_done'] = False
 
             # Get session
             security_token, cst = await get_session()
@@ -405,10 +431,36 @@ async def trading_bot_loop():
             trading_state['pending_signals'] = []
 
             for epic in instruments:
+                # Algorithmic analysis first
                 analysis = await analyze_instrument(epic, security_token, cst)
 
                 if "error" not in analysis:
                     trading_state['market_data'][epic] = analysis
+
+                    # ========== AI DECISION MAKING ==========
+                    # Use Claude for borderline signals or important decisions
+                    use_ai = config.get('ai_research', {}).get('enabled', False)
+                    use_claude = config.get('ai_research', {}).get('use_claude', False)
+
+                    if use_ai and use_claude and researcher.should_use_claude(analysis):
+                        logger.info(f"🧠 Calling Claude AI for {epic} analysis...")
+
+                        # Generate comprehensive trading plan with AI
+                        ai_plan = await researcher.generate_trading_plan(epic, analysis)
+
+                        if not ai_plan.get('error'):
+                            # Store AI decision
+                            trading_state['ai_decisions'][epic] = ai_plan
+
+                            # Override algorithmic decision with AI decision
+                            analysis['prediction'] = ai_plan['decision']
+                            analysis['confidence'] = ai_plan['confidence']
+                            analysis['entry'] = ai_plan.get('entry', analysis.get('entry'))
+                            analysis['stop_loss'] = ai_plan.get('stop_loss', analysis.get('stop_loss'))
+                            analysis['take_profit'] = ai_plan.get('take_profit', analysis.get('take_profit'))
+                            analysis['ai_reasoning'] = ai_plan.get('reasoning', [])
+
+                            logger.info(f"🎯 AI Decision: {ai_plan['decision']} at {ai_plan['confidence']}% confidence")
 
                     # Check if signal is strong enough
                     if analysis['prediction'] != "HOLD" and analysis['confidence'] >= min_confidence:
@@ -422,7 +474,7 @@ async def trading_bot_loop():
                             if risk_check['allowed']:
                                 # Calculate position size
                                 risk_amount = balance.get('balance', 10000) * (config['risk_management']['risk_per_trade_percent'] / 100)
-                                stop_distance = abs(analysis['entry'] - analysis['stop_loss'])
+                                stop_distance = abs(analysis['entry'] - analysis['stop_loss']) if analysis.get('entry') and analysis.get('stop_loss') else 100
                                 position_size = min(risk_amount / stop_distance, config['risk_management']['max_position_size']) if stop_distance > 0 else 0.1
 
                                 position_size = round(position_size, 2)

@@ -12,13 +12,15 @@ A Model Context Protocol (MCP) server that connects Claude Desktop to Capital.co
 
 ## Features
 
-### 🤖 NEW: Automated Trading Dashboard
-- **AI-Powered Trading Bot**: Continuous market monitoring with automated trade execution
+### 🤖 NEW: AI-Powered Trading System
+- **Perplexity + Claude Integration**: Real news research combined with AI decision making
+- **Pre-Market Research**: Automated news gathering every morning for all instruments
+- **Intelligent Analysis**: Claude AI analyzes news context + technical indicators
+- **Smart Routing**: Only calls AI when needed (borderline signals) to save costs
 - **Real-Time Dashboard**: Web interface at http://localhost:5000
 - **Risk Management**: Configurable limits on losses, position sizes, and trade frequency
-- **Smart Signals**: AI predictions with confidence scores for multiple instruments
 - **One-Click Controls**: Start/stop bot and enable/disable auto-trading
-- 📖 **[Full Dashboard Documentation](DASHBOARD_README.md)**
+- 📖 **[AI Research Guide](AI_RESEARCH_GUIDE.md)** | **[Dashboard Docs](DASHBOARD_README.md)**
 
 ### Market Analysis Tools
 - 🔍 **Search Markets**: Find tradeable instruments (forex, indices, commodities, stocks, crypto)
