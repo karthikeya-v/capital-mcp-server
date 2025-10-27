@@ -1,0 +1,30 @@
+{
+  "risk_management": {
+    "max_daily_loss": 500,
+    "max_daily_trades": 10,
+    "max_open_positions": 3,
+    "max_position_size": 1.0,
+    "risk_per_trade_percent": 1.0,
+    "use_stop_loss": true,
+    "min_risk_reward_ratio": 1.5
+  },
+  "trading_settings": {
+    "enabled": false,
+    "auto_trade": false,
+    "demo_mode": true,
+    "trading_instruments": ["US100", "EURUSD", "GBPUSD", "US500", "GOLD"],
+    "check_interval_seconds": 60,
+    "min_confidence_threshold": 65
+  },
+  "notifications": {
+    "trade_executed": true,
+    "stop_loss_hit": true,
+    "take_profit_hit": true,
+    "daily_loss_limit_reached": true
+  },
+  "emergency": {
+    "close_all_on_daily_loss": true,
+    "pause_trading_on_consecutive_losses": 3,
+    "max_account_drawdown_percent": 10
+  }
+}

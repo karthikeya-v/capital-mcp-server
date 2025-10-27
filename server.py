@@ -455,6 +455,115 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": ["epic"]
             }
+        ),
+        Tool(
+            name="place_working_order",
+            description="Place a pending limit or stop order that triggers at a specific price level",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "epic": {
+                        "type": "string",
+                        "description": "Market epic/identifier"
+                    },
+                    "direction": {
+                        "type": "string",
+                        "description": "Order direction",
+                        "enum": ["BUY", "SELL"]
+                    },
+                    "size": {
+                        "type": "number",
+                        "description": "Order size"
+                    },
+                    "level": {
+                        "type": "number",
+                        "description": "Price level at which the order triggers"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Order type",
+                        "enum": ["LIMIT", "STOP"]
+                    },
+                    "stop_distance": {
+                        "type": "number",
+                        "description": "Stop loss distance in points (optional)"
+                    },
+                    "profit_distance": {
+                        "type": "number",
+                        "description": "Take profit distance in points (optional)"
+                    }
+                },
+                "required": ["epic", "direction", "size", "level", "type"]
+            }
+        ),
+        Tool(
+            name="cancel_working_order",
+            description="Cancel a pending working order",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "deal_id": {
+                        "type": "string",
+                        "description": "The deal ID of the working order to cancel"
+                    }
+                },
+                "required": ["deal_id"]
+            }
+        ),
+        Tool(
+            name="get_trade_history",
+            description="Get closed positions and trade history with performance metrics",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of trades to return (default 50)",
+                        "default": 50
+                    }
+                }
+            }
+        ),
+        Tool(
+            name="check_market_status",
+            description="Check if a market is currently open for trading and get trading hours",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "epic": {
+                        "type": "string",
+                        "description": "Market epic/identifier"
+                    }
+                },
+                "required": ["epic"]
+            }
+        ),
+        Tool(
+            name="calculate_position_size",
+            description="Calculate optimal position size based on account balance, risk percentage, and stop loss distance",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "epic": {
+                        "type": "string",
+                        "description": "Market epic/identifier"
+                    },
+                    "entry_price": {
+                        "type": "number",
+                        "description": "Planned entry price"
+                    },
+                    "stop_loss": {
+                        "type": "number",
+                        "description": "Planned stop loss level"
+                    },
+                    "risk_percent": {
+                        "type": "number",
+                        "description": "Percentage of account to risk (e.g., 1 for 1%)",
+                        "default": 1
+                    }
+                },
+                "required": ["epic", "entry_price", "stop_loss"]
+            }
         )
     ]
 
@@ -729,6 +838,239 @@ CONFIDENCE: {result['confidence']:.1f}%
                     type="text",
                     text=output
                 )]
+
+            # ===== PLACE WORKING ORDER =====
+            elif name == "place_working_order":
+                payload = {
+                    "epic": arguments['epic'],
+                    "direction": arguments['direction'],
+                    "size": arguments['size'],
+                    "level": arguments['level'],
+                    "type": arguments['type']
+                }
+
+                if 'stop_distance' in arguments:
+                    payload['stopDistance'] = arguments['stop_distance']
+                if 'profit_distance' in arguments:
+                    payload['profitDistance'] = arguments['profit_distance']
+
+                response = await client.post(
+                    f"{API_URL}/api/v1/workingorders",
+                    headers=headers,
+                    json=payload
+                )
+
+                if response.status_code in [200, 201]:
+                    data = response.json()
+                    return [TextContent(
+                        type="text",
+                        text=f"✅ Working order placed successfully!\n{json.dumps(data, indent=2)}"
+                    )]
+                else:
+                    return [TextContent(
+                        type="text",
+                        text=f"❌ Error placing working order: {response.status_code} - {response.text}"
+                    )]
+
+            # ===== CANCEL WORKING ORDER =====
+            elif name == "cancel_working_order":
+                response = await client.delete(
+                    f"{API_URL}/api/v1/workingorders/{arguments['deal_id']}",
+                    headers=headers
+                )
+
+                if response.status_code in [200, 204]:
+                    return [TextContent(
+                        type="text",
+                        text=f"✅ Working order {arguments['deal_id']} cancelled successfully!"
+                    )]
+                else:
+                    return [TextContent(
+                        type="text",
+                        text=f"❌ Error cancelling working order: {response.status_code} - {response.text}"
+                    )]
+
+            # ===== GET TRADE HISTORY =====
+            elif name == "get_trade_history":
+                max_results = arguments.get('max_results', 50)
+                response = await client.get(
+                    f"{API_URL}/api/v1/history/activity",
+                    headers=headers,
+                    params={"max": min(max_results, 500)}
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    activities = data.get('activities', [])
+
+                    # Calculate performance metrics
+                    closed_positions = [a for a in activities if a.get('type') == 'POSITION' and a.get('status') == 'CLOSED']
+
+                    if closed_positions:
+                        total_profit = sum(p.get('profit', {}).get('amount', 0) for p in closed_positions)
+                        winning_trades = [p for p in closed_positions if p.get('profit', {}).get('amount', 0) > 0]
+                        losing_trades = [p for p in closed_positions if p.get('profit', {}).get('amount', 0) < 0]
+
+                        win_rate = (len(winning_trades) / len(closed_positions) * 100) if closed_positions else 0
+                        avg_win = sum(p.get('profit', {}).get('amount', 0) for p in winning_trades) / len(winning_trades) if winning_trades else 0
+                        avg_loss = sum(p.get('profit', {}).get('amount', 0) for p in losing_trades) / len(losing_trades) if losing_trades else 0
+
+                        metrics = {
+                            "total_trades": len(closed_positions),
+                            "winning_trades": len(winning_trades),
+                            "losing_trades": len(losing_trades),
+                            "win_rate": round(win_rate, 2),
+                            "total_profit": round(total_profit, 2),
+                            "avg_win": round(avg_win, 2),
+                            "avg_loss": round(avg_loss, 2),
+                            "profit_factor": round(abs(avg_win / avg_loss), 2) if avg_loss != 0 else 0
+                        }
+
+                        output = f"""
+📊 TRADE HISTORY SUMMARY
+{'='*60}
+Total Trades: {metrics['total_trades']}
+Winning Trades: {metrics['winning_trades']} ({metrics['win_rate']}%)
+Losing Trades: {metrics['losing_trades']}
+Total P&L: {metrics['total_profit']}
+Average Win: {metrics['avg_win']}
+Average Loss: {metrics['avg_loss']}
+Profit Factor: {metrics['profit_factor']}
+{'='*60}
+
+Recent Trades:
+{json.dumps(closed_positions[:10], indent=2)}
+"""
+                        return [TextContent(type="text", text=output)]
+                    else:
+                        return [TextContent(
+                            type="text",
+                            text="No closed positions found in trade history."
+                        )]
+                else:
+                    return [TextContent(
+                        type="text",
+                        text=f"Error fetching trade history: {response.status_code} - {response.text}"
+                    )]
+
+            # ===== CHECK MARKET STATUS =====
+            elif name == "check_market_status":
+                response = await client.get(
+                    f"{API_URL}/api/v1/markets/{arguments['epic']}",
+                    headers=headers
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    snapshot = data.get('snapshot', {})
+                    dealing_rules = data.get('dealingRules', {})
+                    instrument = data.get('instrument', {})
+
+                    market_status = snapshot.get('marketStatus', 'UNKNOWN')
+                    is_tradeable = market_status in ['TRADEABLE', 'OPEN']
+
+                    output = f"""
+📍 MARKET STATUS: {instrument.get('name', arguments['epic'])}
+{'='*60}
+Status: {market_status}
+{'✅ Market is OPEN for trading' if is_tradeable else '❌ Market is CLOSED'}
+
+Current Prices:
+  Bid: {snapshot.get('bid')}
+  Offer: {snapshot.get('offer')}
+  Spread: {snapshot.get('offer', 0) - snapshot.get('bid', 0):.2f}
+
+Trading Rules:
+  Min Deal Size: {dealing_rules.get('minDealSize', {}).get('value', 'N/A')}
+  Max Deal Size: {dealing_rules.get('maxDealSize', {}).get('value', 'N/A')}
+
+Market Hours:
+{json.dumps(data.get('openingHours', {}), indent=2)}
+{'='*60}
+"""
+                    return [TextContent(type="text", text=output)]
+                else:
+                    return [TextContent(
+                        type="text",
+                        text=f"Error checking market status: {response.status_code} - {response.text}"
+                    )]
+
+            # ===== CALCULATE POSITION SIZE =====
+            elif name == "calculate_position_size":
+                # Get account info first
+                account_response = await client.get(
+                    f"{API_URL}/api/v1/accounts",
+                    headers=headers
+                )
+
+                if account_response.status_code != 200:
+                    return [TextContent(
+                        type="text",
+                        text=f"Error fetching account info: {account_response.status_code}"
+                    )]
+
+                account_data = account_response.json()
+                accounts = account_data.get('accounts', [])
+                if not accounts:
+                    return [TextContent(type="text", text="No account found")]
+
+                balance = accounts[0].get('balance', {}).get('balance', 0)
+                available = accounts[0].get('balance', {}).get('available', 0)
+
+                # Get market details for contract size
+                market_response = await client.get(
+                    f"{API_URL}/api/v1/markets/{arguments['epic']}",
+                    headers=headers
+                )
+
+                if market_response.status_code != 200:
+                    return [TextContent(
+                        type="text",
+                        text=f"Error fetching market details: {market_response.status_code}"
+                    )]
+
+                market_data = market_response.json()
+                dealing_rules = market_data.get('dealingRules', {})
+                min_size = dealing_rules.get('minDealSize', {}).get('value', 0.1)
+
+                # Calculate risk
+                entry = arguments['entry_price']
+                stop = arguments['stop_loss']
+                risk_percent = arguments.get('risk_percent', 1)
+
+                stop_distance = abs(entry - stop)
+                risk_amount = balance * (risk_percent / 100)
+
+                # Position size = Risk Amount / Stop Distance
+                position_size = risk_amount / stop_distance if stop_distance > 0 else 0
+
+                # Round to reasonable size and ensure it meets minimum
+                position_size = max(round(position_size, 2), min_size)
+
+                output = f"""
+💰 POSITION SIZE CALCULATOR
+{'='*60}
+Account Balance: {balance:.2f}
+Available Funds: {available:.2f}
+Risk Percentage: {risk_percent}%
+Risk Amount: {risk_amount:.2f}
+
+Entry Price: {entry}
+Stop Loss: {stop}
+Stop Distance: {stop_distance:.2f}
+
+{'='*60}
+RECOMMENDED POSITION SIZE: {position_size}
+{'='*60}
+
+Trade Details:
+  Risk per lot: {stop_distance:.2f}
+  Total Risk: {risk_amount:.2f}
+  Minimum Size: {min_size}
+
+⚠️  Always verify position size fits within your risk management rules
+"""
+                return [TextContent(type="text", text=output)]
 
             else:
                 return [TextContent(
