@@ -1,0 +1,70 @@
+{
+  "realtime_data": {
+    "enabled": false,
+    "provider": "binance",
+    "update_strategy": "tick",
+    "providers": {
+      "binance": {
+        "enabled": true,
+        "api_key": null,
+        "symbols": {
+          "BITCOIN": "BTCUSDT",
+          "ETHEREUM": "ETHUSDT"
+        },
+        "cost": "FREE"
+      },
+      "polygon": {
+        "enabled": false,
+        "api_key": "YOUR_POLYGON_KEY",
+        "symbols": {
+          "US100": "QQQ",
+          "US500": "SPY"
+        },
+        "cost": "$29-99/month"
+      },
+      "alpaca": {
+        "enabled": false,
+        "api_key": "YOUR_KEY:YOUR_SECRET",
+        "symbols": {
+          "AAPL": "AAPL",
+          "TSLA": "TSLA",
+          "NVDA": "NVDA"
+        },
+        "cost": "FREE (IEX data)"
+      },
+      "twelvedata": {
+        "enabled": false,
+        "api_key": "YOUR_TWELVEDATA_KEY",
+        "symbols": {
+          "US100": "NDX",
+          "EURUSD": "EUR/USD",
+          "GBPUSD": "GBP/USD",
+          "GOLD": "XAU/USD"
+        },
+        "cost": "$79/month"
+      },
+      "capital": {
+        "enabled": false,
+        "note": "Check Capital.com API docs for WebSocket endpoint",
+        "symbols": {
+          "US100": "US100",
+          "EURUSD": "EURUSD",
+          "GBPUSD": "GBPUSD"
+        },
+        "cost": "Included with Capital.com account"
+      }
+    }
+  },
+  "tick_processing": {
+    "aggregation_window_ms": 1000,
+    "min_price_change_pct": 0.01,
+    "volume_threshold": 100,
+    "buffer_size": 1000
+  },
+  "recommendations": {
+    "for_crypto": "Use Binance (FREE, millisecond updates)",
+    "for_forex": "Use TwelveData ($79/mo) or Capital.com WebSocket",
+    "for_stocks": "Use Alpaca (FREE IEX) or Polygon ($29-99/mo)",
+    "for_indices": "Use TwelveData or check Capital.com WebSocket"
+  }
+}
